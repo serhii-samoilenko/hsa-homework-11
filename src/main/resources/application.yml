@@ -1,0 +1,11 @@
+app:
+  postgres:
+    jdbc-url: jdbc:postgresql://localhost:5432/test
+    username: postgres
+    password: postgres
+    connection-pool-size: 10
+  mysql:
+    jdbc-url: jdbc:mysql://localhost:3306/test
+    username: root
+    password: root
+    connection-pool-size: 10
