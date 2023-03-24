@@ -80,11 +80,24 @@ fun runDemo(helper: Helper) = with(helper) {
         """
         {
           "query": {
-            "match": {
-              "name": {
-                "query": "{{value}}",
-                "minimum_should_match": "60%"
-              }
+            "bool": {
+              "should": [
+                {
+                  "match": {
+                    "name": {
+                      "query": "{{value}}",
+                      "minimum_should_match": "60%"
+                    }
+                  }
+                },
+                {
+                  "match": {
+                    "name.keyword": {
+                      "query": "{{value}}",
+                    }
+                  }
+                }
+              ]
             }
           },
           "suggest": {
@@ -92,8 +105,8 @@ fun runDemo(helper: Helper) = with(helper) {
               "prefix": "{{value}}",
               "completion": {
                 "field": "name.suggest",
-                "fuzzy" : {
-                  "fuzziness" : 2
+                "fuzzy": {
+                  "fuzziness": 2
                 },
                 "size": 10,
                 "skip_duplicates": true
