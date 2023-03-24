@@ -2,7 +2,8 @@
 
 This demo shows how to use Elasticsearch to implement a fuzzy autocomplete feature.
 In order to perform a fuzzy autocomplete search with fuzziness = 3, we'll use the n-gram tokenizer 
-with a minimum and maximin n-gram length of 3
+with a minimum and maximin n-gram length of 3 and will use the query string query with the minimum_should_match
+parameter set to 60%. This will cover typo cases for long words.
 
 ## Preparing the solution
 
@@ -11,20 +12,23 @@ with a minimum and maximin n-gram length of 3
 ```json
 {
   "settings": {
-    "analysis": {
-      "analyzer": {
-        "trigram_analyzer": {
-          "tokenizer": "trigram_tokenizer"
-        }
-      },
-      "tokenizer": {
-        "trigram_tokenizer": {
-          "type": "ngram",
-          "min_gram": 3,
-          "max_gram": 3,
-          "token_chars": [
-            "letter"
-          ]
+    "index": {
+      "max_ngram_diff": 2,
+      "analysis": {
+        "analyzer": {
+          "trigram_analyzer": {
+            "tokenizer": "trigram_tokenizer"
+          }
+        },
+        "tokenizer": {
+          "trigram_tokenizer": {
+            "type": "ngram",
+            "min_gram": 3,
+            "max_gram": 3,
+            "token_chars": [
+              "letter"
+            ]
+          }
         }
       }
     }
@@ -47,13 +51,33 @@ with a minimum and maximin n-gram length of 3
 
 ### Inserting various city names as data:
 
-`Io`, `Rio`, `Rome`, `Paris`, `London`, `Toronto`, `New York City`
+`Io`, `Rio`, `Rome`, `Paris`, `London`, `Toronto`, `Shanghai`
 
-`Tokyo`, `Rio de Janeiro`, `Los Angeles`, `Berlin`, `Istanbul`, `Singapore`, `Shanghai`
+`Manchester`, `Minneapolis`, `Philadelphia`, `New York City`, `Tokyo`, `Rio de Janeiro`, `Los Angeles`
 
-`Amsterdam`, `Hong Kong`, `Barcelona`, `Copenhagen`, `Manchester`, `Philadelphia`, `Wellington`
+`Berlin`, `Istanbul`, `Singapore`, `Amsterdam`, `Hong Kong`, `Barcelona`, `Copenhagen`
 
-`Kathmandu`, `Birmingham`, `Melbourne`, `Minneapolis`
+`Wellington`, `Kathmandu`, `Birmingham`, `Melbourne`, `Sydney`, `Dublin`, `Brisbane`
+
+`Perth`, `Adelaide`, `Auckland`, `Cape Town`, `Johannesburg`, `Cairo`, `Beijing`
+
+`Seoul`, `Mexico City`, `Santiago`, `Buenos Aires`, `Sao Paulo`, `Lima`, `Bogota`
+
+`Caracas`, `Baku`, `Tehran`, `Florence`, `Venice`, `Bologna`, `Turin`
+
+`Palermo`, `Genoa`, `Bari`, `Catania`, `Verona`, `Padua`, `Parma`
+
+`Brescia`, `Modena`, `Reggio Calabria`, `Reggio Emilia`, `Messina`, `Livorno`, `Ravenna`
+
+`Ferrara`, `Trieste`, `Perugia`, `Taranto`, `Cagliari`, `Sassari`, `Siena`
+
+`Forli`, `Foggia`, `Rimini`, `Monza`, `Bergamo`, `Ancona`, `Pescara`
+
+`Lecce`, `Salerno`, `Trento`, `Piacenza`, `Pisa`, `Arezzo`, `Pesaro`
+
+`Novara`, `Vicenza`, `Asti`, `La Spezia`, `Varese`, `Catanzaro`, `Como`
+
+`Savona`, `Lucca`, `Pordenone`
 
 ### The query used to perform the fuzzy autocomplete search:
 
@@ -63,7 +87,7 @@ with a minimum and maximin n-gram length of 3
     "match": {
       "name": {
         "query": "{{value}}",
-        "minimum_should_match": "60%"
+        "minimum_should_match": "7<30% 10<60%"
       }
     }
   },
@@ -102,79 +126,112 @@ The query is composed of two parts:
 
 #### 3-letter city names search:
 
-| Query | Result                    |
-|-------|---------------------------|
-| Rio   | Rio, Rio de Janeiro, Rome |
-| io    | Io                        |
-| ri    | Rio, Rio de Janeiro       |
-| rid   | Rio, Rio de Janeiro, Rome |
-| rat   | Rio, Rio de Janeiro, Rome |
-| riot  | Rio, Rio de Janeiro, Rome |
-| zio   | No results                |
-| abc   | Amsterdam                 |
+| Query | Result                                                                     |
+|-------|----------------------------------------------------------------------------|
+| Rio   | Rio, Rio de Janeiro, Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rome |
+| io    | Io                                                                         |
+| ri    | Rimini, Rio, Rio de Janeiro                                                |
+| rid   | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rio, Rio de Janeiro, Rome |
+| rat   | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rio, Rio de Janeiro, Rome |
+| riot  | Rimini, Rio, Rio de Janeiro, Rome                                          |
+| zio   | No results                                                                 |
+| abc   | Adelaide, Amsterdam, Ancona, Arezzo, Asti, Auckland                        |
 
 #### 4-letter city names search:
 
-| Query | Result                    |
-|-------|---------------------------|
-| Rome  | Rome                      |
-| rom   | Rio, Rio de Janeiro, Rome |
-| ro    | Rome                      |
-| r     | Rio, Rio de Janeiro, Rome |
-| rume  | Rome                      |
-| rum   | Rio, Rio de Janeiro, Rome |
-| ramen | Rome                      |
-| roqw  | Rome                      |
-| rqwe  | Rome                      |
-| gone  | No results                |
-| abcd  | No results                |
+| Query | Result                                                                     |
+|-------|----------------------------------------------------------------------------|
+| Rome  | Rome, Ravenna, Reggio Calabria, Reggio Emilia, Rimini                      |
+| rom   | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rio, Rio de Janeiro, Rome |
+| ro    | Rome                                                                       |
+| r     | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rio, Rio de Janeiro, Rome |
+| rume  | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rome                      |
+| rum   | Ravenna, Reggio Calabria, Reggio Emilia, Rimini, Rio, Rio de Janeiro, Rome |
+| ramen | Ravenna, Rimini, Rome                                                      |
+| roqw  | Rome                                                                       |
+| rqwe  | Ravenna, Reggio Calabria, Reggio Emilia, Rome                              |
+| gone  | Genoa                                                                      |
+| abcd  | Adelaide, Ancona, Auckland                                                 |
 
 #### 5-letter city names search:
 
-| Query | Result              |
-|-------|---------------------|
-| Paris | Paris               |
-| pari  | Paris, Philadelphia |
-| par   | Paris, Philadelphia |
-| pa    | Paris               |
-| p     | Paris, Philadelphia |
-| poris | Paris, Singapore    |
-| poriz | Singapore, Paris    |
-| pabcs | Paris               |
-| pgone | No results          |
-| abcde | No results          |
+| Query | Result                                                                                |
+|-------|---------------------------------------------------------------------------------------|
+| Paris | Paris, Parma, Pisa                                                                    |
+| pari  | Padua, Palermo, Paris, Parma, Perth, Perugia, Philadelphia, Piacenza, Pisa, Pordenone |
+| par   | Padua, Palermo, Paris, Parma, Perth, Perugia, Pesaro, Pescara, Philadelphia, Piacenza |
+| pa    | Padua, Palermo, Paris, Parma                                                          |
+| p     | Padua, Palermo, Paris, Parma, Perth, Perugia, Pesaro, Pescara, Philadelphia, Piacenza |
+| poris | Pordenone, Paris, Pisa                                                                |
+| poriz | Pordenone, Paris                                                                      |
+| pabcs | Paris                                                                                 |
+| pgone | No results                                                                            |
+| abcde | Adelaide                                                                              |
 
 #### 6-letter city names search:
 
-| Query  | Result            |
-|--------|-------------------|
-| London | London            |
-| landon | London            |
-| lando  | London, Kathmandu |
-| bandon | London            |
-| bando  | London, Kathmandu |
-| loabc  | No results        |
-| logone | No results        |
-| abcdef | No results        |
+| Query  | Result     |
+|--------|------------|
+| London | London     |
+| landon | London     |
+| landan | London     |
+| lando  | London     |
+| bandon | No results |
+| bando  | No results |
+| loabcd | No results |
+| logone | No results |
 
 #### 7-letter city names search:
 
-| Query   | Result     |
-|---------|------------|
-| Toronto | Toronto    |
-| taranta | No results |
-| tabcnto | No results |
-| togone  | Toronto    |
-| abcdefg | No results |
+| Query   | Result                   |
+|---------|--------------------------|
+| Toronto | Toronto, Taranto, Trento |
+| Tironto | Taranto, Toronto, Trento |
+| Tironti | Toronto                  |
+| taranta | Taranto                  |
+| tabcnto | Taranto                  |
+| togone  | Toronto                  |
+| abcdefg | No results               |
 
 #### 8-letter city names search:
 
 | Query    | Result     |
 |----------|------------|
 | Shanghai | Shanghai   |
+| shanghoi | Shanghai   |
 | shonghoi | Shanghai   |
 | shonghoy | No results |
 | abcdefgh | No results |
+
+#### 9-letter city names search:
+
+| Query      | Result                         |
+|------------|--------------------------------|
+| Manchester | Manchester, Trieste, Amsterdam |
+| Monchester | Manchester, Trieste, Amsterdam |
+| Monchuster | Manchester, Amsterdam          |
+| Minchistir | No results                     |
+| Mihchistor | No results                     |
+
+#### 10-letter city names search:
+
+| Query       | Result      |
+|-------------|-------------|
+| Minneapolis | Minneapolis |
+| Minnwapolis | Minneapolis |
+| Middeapolis | Minneapolis |
+| Munneupolus | Minneapolis |
+| Mynnyypolys | No results  |
+
+#### 11-letter city names search:
+
+| Query        | Result       |
+|--------------|--------------|
+| Philadelphia | Philadelphia |
+| Phyladelphia | Philadelphia |
+| Pholodelphia | Philadelphia |
+| Pholodelphio | Philadelphia |
+| Pholodolphio | No results   |
 
 ### Web UI to test the solution manually
 
