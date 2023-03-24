@@ -31,7 +31,7 @@ class EsAgent(
     inner class QueryExecutor(private val queryTemplate: String) {
         fun execute(value: String): Pair<String, String> {
             val query = queryTemplate.replace("{{value}}", value)
-            var result = esService.query(indexName, query, Data::class).joinToString(", ") { it.name }
+            var result = esService.suggestQuery(indexName, query, Data::class) { it.name }.joinToString(", ")
             if (result.isBlank()) {
                 result = "No results"
             }

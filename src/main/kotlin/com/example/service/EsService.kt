@@ -73,19 +73,31 @@ class EsService(
         }
     }
 
-    fun <T : Any> query(index: String, query: String, resultClass: KClass<T>): List<T> {
+    fun <T : Any> suggestQuery(
+        index: String,
+        query: String,
+        resultClass: KClass<T>,
+        fieldExtractor: (T) -> String,
+    ): List<String> {
         val request = Request("GET", "/$index/_search")
         request.setJsonEntity(query)
         val response: Response = restClient.performRequest(request)
         val responseBody: String = EntityUtils.toString(response.entity)
         println(responseBody)
         println()
-        val hits: JsonArray = JsonObject(responseBody)
+        val found: List<String> = JsonObject(responseBody)
             .getJsonObject("hits")
             .getJsonArray("hits")
-        return hits.map {
-            it as JsonObject
-            it.getJsonObject("_source").mapTo(resultClass.java)
-        }
+            .map {
+                (it as JsonObject).getJsonObject("_source").mapTo(resultClass.java).let(fieldExtractor)
+            }
+        val suggestions = JsonObject(responseBody)
+            .getJsonObject("suggest")
+            .getJsonArray("suggest")
+            .flatMap { (it as JsonObject).getJsonArray("options") }
+            .map {
+                (it as JsonObject).getJsonObject("_source").mapTo(resultClass.java).let(fieldExtractor)
+            }
+        return (found + suggestions).distinct()
     }
 }

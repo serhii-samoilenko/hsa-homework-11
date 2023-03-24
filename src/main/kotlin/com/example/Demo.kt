@@ -93,7 +93,7 @@ fun runDemo(helper: Helper) = with(helper) {
                 {
                   "match": {
                     "name.keyword": {
-                      "query": "{{value}}",
+                      "query": "{{value}}"
                     }
                   }
                 }
@@ -101,7 +101,7 @@ fun runDemo(helper: Helper) = with(helper) {
             }
           },
           "suggest": {
-            "text-suggest": {
+            "suggest": {
               "prefix": "{{value}}",
               "completion": {
                 "field": "name.suggest",
