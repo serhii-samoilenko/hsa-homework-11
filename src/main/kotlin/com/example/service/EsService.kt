@@ -63,7 +63,6 @@ class EsService(
         request.setJsonEntity(query)
         val response: Response = restClient.performRequest(request)
         val responseBody: String = EntityUtils.toString(response.entity)
-        val searchResponse = JsonObject(responseBody).mapTo(SearchResponse::class.java)
         val hits: JsonArray = JsonObject(responseBody)
             .getJsonObject("hits")
             .getJsonArray("hits")

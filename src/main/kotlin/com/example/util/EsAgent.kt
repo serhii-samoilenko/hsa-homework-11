@@ -1,5 +1,6 @@
 package com.example.util
 
+import com.example.model.City
 import com.example.service.EsService
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -22,7 +23,7 @@ class EsAgent(
             report.text(chunk.joinToString(", ") { "`$it`" })
         }
         values.forEach {
-            esService.index(indexName, Data(it))
+            esService.index(indexName, City(it))
         }
     }
 
@@ -31,16 +32,11 @@ class EsAgent(
     inner class QueryExecutor(private val queryTemplate: String) {
         fun execute(value: String): Pair<String, String> {
             val query = queryTemplate.replace("{{value}}", value)
-            var result = esService.suggestQuery(indexName, query, Data::class) { it.name }.joinToString(", ")
+            var result = esService.suggestQuery(indexName, query, City::class) { it.name }.joinToString(", ")
             if (result.isBlank()) {
                 result = "No results"
             }
             return value to result
         }
     }
-
-    data class Data(
-        @JsonProperty("name")
-        val name: String,
-    )
 }

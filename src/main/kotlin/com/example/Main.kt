@@ -13,7 +13,7 @@ class Main : QuarkusApplication {
 
     override fun run(vararg args: String): Int {
         println(" --- Initializing Elasticsearch with mappings and data --- ")
-        demo.init()
+        demo.run()
         println(" --- Now you can use the Rest API ---")
         Quarkus.waitForExit()
         return 0

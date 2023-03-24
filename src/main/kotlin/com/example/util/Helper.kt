@@ -6,6 +6,4 @@ import javax.enterprise.context.ApplicationScoped
 
 @ApplicationScoped
 @Startup
-class Helper(val esService: EsService) {
-    val indexName = "demo"
-}
+class Helper(val esService: EsService)

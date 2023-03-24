@@ -11,9 +11,9 @@
         event.preventDefault();
         const name = $("#search-input").val();
         $.get("/city/search/" + name, function (data) {
-          let table = "<table><tr><th>ID</th><th>Name</th></tr>";
+          let table = "<table><tr><th>Name</th></tr>";
           data.forEach(function (city) {
-            table += "<tr><td>" + city.id + "</td><td>" + city.name + "</td></tr>";
+            table += "<tr><td>" + city.name + "</td></tr>";
           });
           table += "</table>";
           $("#search-results").html(table);
@@ -44,7 +44,6 @@
       // Create a new city
       $("#create-form").submit(function (event) {
         event.preventDefault();
-        const id = $("#create-id").val();
         const name = $("#create-name").val();
         // Add application/json header to request:
         $.ajaxSetup({
@@ -52,7 +51,7 @@
             "Content-Type": "application/json"
           }
         });
-        $.post("/city", JSON.stringify({ id: id, name: name }), function () {
+        $.post("/city", JSON.stringify({ name: name }), function () {
           alert("City created successfully.");
         });
       });
@@ -341,8 +340,6 @@
   <hr>
   <h2>Create a new city</h2>
   <form id="create-form">
-    <label for="create-id">ID:</label>
-    <input type="text" id="create-id" name="id"><br>
     <label for="create-name">Name:</label>
     <input type="text" id="create-name" name="name"><br>
     <button type="submit">Create</button>
