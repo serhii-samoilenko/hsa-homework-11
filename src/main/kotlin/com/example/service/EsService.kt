@@ -1,6 +1,5 @@
 package com.example.service
 
-import com.example.model.SearchResponse
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.apache.http.util.EntityUtils
@@ -76,6 +75,7 @@ class EsService(
         index: String,
         query: String,
         resultClass: KClass<T>,
+        includeSuggestions: Boolean = true,
         fieldExtractor: (T) -> String,
     ): List<String> {
         val request = Request("GET", "/$index/_search")
@@ -90,13 +90,17 @@ class EsService(
             .map {
                 (it as JsonObject).getJsonObject("_source").mapTo(resultClass.java).let(fieldExtractor)
             }
-        val suggestions = JsonObject(responseBody)
-            .getJsonObject("suggest")
-            .getJsonArray("suggest")
-            .flatMap { (it as JsonObject).getJsonArray("options") }
-            .map {
-                (it as JsonObject).getJsonObject("_source").mapTo(resultClass.java).let(fieldExtractor)
-            }
+        val suggestions = if (!includeSuggestions) {
+            emptyList()
+        } else {
+            JsonObject(responseBody)
+                .getJsonObject("suggest")
+                .getJsonArray("suggest")
+                .flatMap { (it as JsonObject).getJsonArray("options") }
+                .map {
+                    (it as JsonObject).getJsonObject("_source").mapTo(resultClass.java).let(fieldExtractor)
+                }
+        }
         return (found + suggestions).distinct()
     }
 }

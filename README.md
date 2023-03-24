@@ -13,6 +13,14 @@ Please refer to the [REPORT.md](reports/REPORT.md) file for the information on m
 
 After launching the demo, you can open simple UI on [http://localhost:8080](http://localhost:8080) to try the queries yourself.
 
+## Issues
+
+I couldn't find a way to make Elasticsearch to leverage exactly **3** typos while performing suggestion search.
+The best I've managed to achieve is the empirically found coefficients of `"minimum_should_match": "7<30% 10<60%"` on
+the search query, which gives relatively stable results for words longer than 9 characters.
+
+Words shorter than 9 characters are mostly handled by the fuzzy suggestion search, which handles up to 2 typos.
+
 ## How to build and run
 
 Start up Elasticsearch

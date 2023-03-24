@@ -17,7 +17,8 @@ fun runDemo(helper: Helper) = with(helper) {
         """
         This demo shows how to use Elasticsearch to implement a fuzzy autocomplete feature.
         In order to perform a fuzzy autocomplete search with fuzziness = 3, we'll use the n-gram tokenizer 
-        with a minimum and maximin n-gram length of 3
+        with a minimum and maximin n-gram length of 3 and will use the query string query with the minimum_should_match
+        parameter set to 60%. This will cover typo cases for long words.
         """.trimIndent(),
     )
     val agent = EsAgent(esService, "demo", r)
@@ -29,20 +30,23 @@ fun runDemo(helper: Helper) = with(helper) {
         """
         {
           "settings": {
-            "analysis": {
-              "analyzer": {
-                "trigram_analyzer": {
-                  "tokenizer": "trigram_tokenizer"
-                }
-              },
-              "tokenizer": {
-                "trigram_tokenizer": {
-                  "type": "ngram",
-                  "min_gram": 3,
-                  "max_gram": 3,
-                  "token_chars": [
-                    "letter"
-                  ]
+            "index": {
+              "max_ngram_diff": 2,
+              "analysis": {
+                "analyzer": {
+                  "trigram_analyzer": {
+                    "tokenizer": "trigram_tokenizer"
+                  }
+                },
+                "tokenizer": {
+                  "trigram_tokenizer": {
+                    "type": "ngram",
+                    "min_gram": 3,
+                    "max_gram": 3,
+                    "token_chars": [
+                      "letter"
+                    ]
+                  }
                 }
               }
             }
@@ -65,10 +69,25 @@ fun runDemo(helper: Helper) = with(helper) {
     )
     r.h3("Inserting various city names as data:")
     agent.insertData(
-        "Io", "Rio", "Rome", "Paris", "London", "Toronto",
-        "New York City", "Tokyo", "Rio de Janeiro", "Los Angeles", "Berlin", "Istanbul",
-        "Singapore", "Shanghai", "Amsterdam", "Hong Kong", "Barcelona", "Copenhagen", "Manchester",
-        "Philadelphia", "Wellington", "Kathmandu", "Birmingham", "Melbourne", "Minneapolis",
+        "Io",
+        "Rio",
+        "Rome",
+        "Paris",
+        "London",
+        "Toronto",
+        "Shanghai",
+        "Manchester",
+        "Minneapolis",
+        "Philadelphia",
+        "New York City", "Tokyo", "Rio de Janeiro", "Los Angeles", "Berlin", "Istanbul", "Singapore", "Amsterdam",
+        "Hong Kong", "Barcelona", "Copenhagen", "Wellington", "Kathmandu", "Birmingham", "Melbourne", "Sydney", "Dublin",
+        "Brisbane", "Perth", "Adelaide", "Auckland", "Cape Town", "Johannesburg", "Cairo", "Beijing", "Seoul",
+        "Mexico City", "Santiago", "Buenos Aires", "Sao Paulo", "Lima", "Bogota", "Caracas", "Baku", "Tehran",
+        "Florence", "Venice", "Bologna", "Turin", "Palermo", "Genoa", "Bari", "Catania", "Verona", "Padua",
+        "Parma", "Brescia", "Modena", "Reggio Calabria", "Reggio Emilia", "Messina", "Livorno", "Ravenna", "Ferrara",
+        "Trieste", "Perugia", "Taranto", "Cagliari", "Sassari", "Siena", "Forli", "Foggia", "Rimini", "Monza",
+        "Bergamo", "Ancona", "Pescara", "Lecce", "Salerno", "Trento", "Piacenza", "Pisa", "Arezzo", "Pesaro",
+        "Novara", "Vicenza", "Asti", "La Spezia", "Varese", "Catanzaro", "Como", "Savona", "Lucca", "Pordenone",
     )
     Thread.sleep(2000)
     r.h3("The query used to perform the fuzzy autocomplete search:")
@@ -79,7 +98,7 @@ fun runDemo(helper: Helper) = with(helper) {
             "match": {
               "name": {
                 "query": "{{value}}",
-                "minimum_should_match": "60%"
+                "minimum_should_match": "7<30% 10<60%"
               }
             }
           },
@@ -138,15 +157,27 @@ fun runDemo(helper: Helper) = with(helper) {
     r.table("Query", "Result", results).also { results.clear() }
 
     r.h4("6-letter city names search:")
-    query(listOf("London", "landon", "lando", "bandon", "bando", "loabc", "logone", "abcdef")).also { results.addAll(it) }
+    query(listOf("London", "landon", "landan", "lando", "bandon", "bando", "loabcd", "logone")).also { results.addAll(it) }
     r.table("Query", "Result", results).also { results.clear() }
 
     r.h4("7-letter city names search:")
-    query(listOf("Toronto", "taranta", "tabcnto", "togone", "abcdefg")).also { results.addAll(it) }
+    query(listOf("Toronto", "Tironto", "Tironti", "taranta", "tabcnto", "togone", "abcdefg")).also { results.addAll(it) }
     r.table("Query", "Result", results).also { results.clear() }
 
     r.h4("8-letter city names search:")
-    query(listOf("Shanghai", "shonghoi", "shonghoy", "abcdefgh")).also { results.addAll(it) }
+    query(listOf("Shanghai", "shanghoi", "shonghoi", "shonghoy", "abcdefgh")).also { results.addAll(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
+    r.h4("9-letter city names search:")
+    query(listOf("Manchester", "Monchester", "Monchuster", "Minchistir", "Mihchistor")).also { results.addAll(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
+    r.h4("10-letter city names search:")
+    query(listOf("Minneapolis", "Minnwapolis", "Middeapolis", "Munneupolus", "Mynnyypolys")).also { results.addAll(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
+    r.h4("11-letter city names search:")
+    query(listOf("Philadelphia", "Phyladelphia", "Pholodelphia", "Pholodelphio", "Pholodolphio")).also { results.addAll(it) }
     r.table("Query", "Result", results).also { results.clear() }
 
     r.h3("Web UI to test the solution manually")

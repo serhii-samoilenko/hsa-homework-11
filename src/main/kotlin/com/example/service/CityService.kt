@@ -45,7 +45,7 @@ class CityService(
 
     fun suggest(prefix: String): List<String> {
         val query = queryTemplate.replace("{{value}}", prefix)
-        return esService.suggestQuery(indexName, query, City::class) { it.name }
+        return esService.suggestQuery(indexName, query, City::class, includeSuggestions = true) { it.name }
     }
 
     fun searchByName(name: String): List<City> {

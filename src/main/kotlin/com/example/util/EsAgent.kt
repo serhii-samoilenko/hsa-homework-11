@@ -2,7 +2,6 @@ package com.example.util
 
 import com.example.model.City
 import com.example.service.EsService
-import com.fasterxml.jackson.annotation.JsonProperty
 
 class EsAgent(
     private val esService: EsService,
@@ -32,7 +31,7 @@ class EsAgent(
     inner class QueryExecutor(private val queryTemplate: String) {
         fun execute(value: String): Pair<String, String> {
             val query = queryTemplate.replace("{{value}}", value)
-            var result = esService.suggestQuery(indexName, query, City::class) { it.name }.joinToString(", ")
+            var result = esService.suggestQuery(indexName, query, City::class, includeSuggestions = true) { it.name }.joinToString(", ")
             if (result.isBlank()) {
                 result = "No results"
             }
