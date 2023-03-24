@@ -1,2 +1,5 @@
 # configure the Elasticsearch client for a single instance on localhost
-quarkus.elasticsearch.hosts: localhost:9200
+quarkus:
+  elasticsearch:
+    hosts: localhost:9200
+    devservices.enabled: false

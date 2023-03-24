@@ -14,9 +14,29 @@ import kotlin.reflect.KClass
 class EsService(
     private val restClient: RestClient,
 ) {
+    fun createIndex(index: String, mapping: String) {
+        val request = Request("PUT", "/$index")
+        request.setJsonEntity(mapping)
+        restClient.performRequest(request)
+    }
+
+    fun tryDeleteIndex(indexName: String) {
+        val request = Request("DELETE", "/$indexName")
+        try {
+            restClient.performRequest(request)
+        } catch (e: Exception) {
+            println("Cannot delete index $indexName")
+        }
+    }
 
     fun index(index: String, id: String, entity: Any) {
         val request = Request("PUT", "/$index/_doc/$id")
+        request.setJsonEntity(JsonObject.mapFrom(entity).toString())
+        restClient.performRequest(request)
+    }
+
+    fun index(index: String, entity: Any) {
+        val request = Request("POST", "/$index/_doc")
         request.setJsonEntity(JsonObject.mapFrom(entity).toString())
         restClient.performRequest(request)
     }
@@ -50,6 +70,22 @@ class EsService(
         return hits.map {
             it as JsonObject
             it.getJsonObject("_source").mapTo(klass.java)
+        }
+    }
+
+    fun <T : Any> query(index: String, query: String, resultClass: KClass<T>): List<T> {
+        val request = Request("GET", "/$index/_search")
+        request.setJsonEntity(query)
+        val response: Response = restClient.performRequest(request)
+        val responseBody: String = EntityUtils.toString(response.entity)
+        println(responseBody)
+        println()
+        val hits: JsonArray = JsonObject(responseBody)
+            .getJsonObject("hits")
+            .getJsonArray("hits")
+        return hits.map {
+            it as JsonObject
+            it.getJsonObject("_source").mapTo(resultClass.java)
         }
     }
 }

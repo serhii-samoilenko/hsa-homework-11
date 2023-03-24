@@ -9,11 +9,11 @@ import javax.inject.Inject
 class Main : QuarkusApplication {
 
     @Inject
-    private lateinit var initializer: Initializer
+    private lateinit var demo: Demo
 
     override fun run(vararg args: String): Int {
         println(" --- Initializing Elasticsearch with mappings and data --- ")
-        initializer.init()
+        demo.init()
         println(" --- Now you can use the Rest API ---")
         Quarkus.waitForExit()
         return 0
