@@ -30,20 +30,19 @@ fun runDemo(helper: Helper) = with(helper) {
         {
           "settings": {
             "analysis": {
-              "filter": {
-                "trigrams_filter": {
-                  "type": "ngram",
-                  "min_gram": 3,
-                  "max_gram": 3
+              "analyzer": {
+                "trigram_analyzer": {
+                  "tokenizer": "trigram_tokenizer"
                 }
               },
-              "analyzer": {
-                "trigrams": {
-                  "type": "custom",
-                  "tokenizer": "standard",
-                  "filter": [
-                    "lowercase",
-                    "trigrams_filter"
+              "tokenizer": {
+                "trigram_tokenizer": {
+                  "type": "ngram",
+                  "min_gram": 3,
+                  "max_gram": 3,
+                  "token_chars": [
+                    "letter",
+                    "digit"
                   ]
                 }
               }
@@ -53,10 +52,13 @@ fun runDemo(helper: Helper) = with(helper) {
             "properties": {
               "name": {
                 "type": "text",
-                "analyzer": "trigrams",
+                "analyzer": "trigram_analyzer",
                 "fields": {
                   "suggest": {
                     "type": "completion"
+                  },
+                  "keyword": {
+                    "type": "keyword"
                   }
                 }
               }
@@ -67,13 +69,13 @@ fun runDemo(helper: Helper) = with(helper) {
     )
     r.h3("Inserting various city names as data:")
     agent.insertData(
-        "New York City", "Tokyo", "Paris", "London", "Sydney", "Rio de Janeiro", "Los Angeles", "Berlin", "Istanbul",
-        "Singapore", "Toronto", "Shanghai", "Amsterdam", "Hong Kong", "Barcelona", "Copenhagen", "Manchester",
+        "Io", "Rio", "Rome", "London", "Sydney", "Toronto",
+        "New York City", "Tokyo", "Paris", "Rio de Janeiro", "Los Angeles", "Berlin", "Istanbul",
+        "Singapore", "Shanghai", "Amsterdam", "Hong Kong", "Barcelona", "Copenhagen", "Manchester",
         "Philadelphia", "Wellington", "Kathmandu", "Birmingham", "Melbourne", "Minneapolis",
     )
     Thread.sleep(2000)
-    r.h2("Testing with various queries")
-    r.h3("Simple query")
+    r.h3("The query used to perform the fuzzy autocomplete search:")
     val queryTemplate =
         """
         {
@@ -81,7 +83,20 @@ fun runDemo(helper: Helper) = with(helper) {
             "match": {
               "name": {
                 "query": "{{value}}",
-                "minimum_should_match": "90%"
+                "minimum_should_match": "60%"
+              }
+            }
+          },
+          "suggest": {
+            "text-suggest": {
+              "prefix": "{{value}}",
+              "completion": {
+                "field": "name.suggest",
+                "fuzzy" : {
+                  "fuzziness" : 2
+                },
+                "size": 10,
+                "skip_duplicates": true
               }
             }
           }
@@ -90,14 +105,27 @@ fun runDemo(helper: Helper) = with(helper) {
     r.json(queryTemplate)
     val executor = agent.prepareQuery(queryTemplate)
     val results = mutableListOf<Pair<String, String>>()
-    executor.execute("singapore").also { results.add(it) }
-    executor.execute("singapor").also { results.add(it) }
-    executor.execute("singapo").also { results.add(it) }
-    executor.execute("singap").also { results.add(it) }
-    executor.execute("singa").also { results.add(it) }
-    executor.execute("sing").also { results.add(it) }
-    executor.execute("sin").also { results.add(it) }
-    r.table("Query", "Result", results)
+
+    r.h4("2-letter city names search:")
+    executor.execute("Io").also { results.add(it) }
+    executor.execute("I").also { results.add(it) }
+    executor.execute("Iol").also { results.add(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
+    r.h4("3-letter city names search:")
+    executor.execute("Rio").also { results.add(it) }
+    executor.execute("io").also { results.add(it) }
+    executor.execute("ri").also { results.add(it) }
+    executor.execute("riot").also { results.add(it) }
+    executor.execute("wio").also { results.add(it) }
+    executor.execute("wao").also { results.add(it) }
+    executor.execute("wat").also { results.add(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
+    r.h4("3-letter city names search:")
+    executor.execute("Rome").also { results.add(it) }
+    r.table("Query", "Result", results).also { results.clear() }
+
     r.writeToFile()
 }
 

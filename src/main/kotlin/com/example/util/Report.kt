@@ -1,6 +1,7 @@
 package com.example.util
 
 import java.io.File
+import java.lang.Integer.max
 
 class Report(
     private val fileName: String,
@@ -61,8 +62,8 @@ class Report(
     }
 
     fun table(titleOne: String, titleTwo: String, data: List<Pair<String, String>>) {
-        val maxLengthQuery = data.maxByOrNull { it.first.length }?.first?.length ?: 0
-        val maxLengthResult = data.maxByOrNull { it.second.length }?.second?.length ?: 0
+        val maxLengthQuery = max(titleOne.length, data.maxByOrNull { it.first.length }?.first?.length ?: 0)
+        val maxLengthResult = max(titleTwo.length, data.maxByOrNull { it.second.length }?.second?.length ?: 0)
 
         line("| $titleOne${" ".repeat(maxLengthQuery - titleOne.length)} | $titleTwo${" ".repeat(maxLengthResult - titleTwo.length)} |")
         line("|${"-".repeat(maxLengthQuery + 2)}|${"-".repeat(maxLengthResult + 2)}|")
